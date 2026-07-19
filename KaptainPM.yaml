@@ -1,7 +1,18 @@
-apiVersion: kaptain.org/1.19
+apiVersion: kaptain.org/1.22
 kind: layer-and-layerset-build
 metadata:
   description: "GCP GKE cluster management build configuration layer"
 spec:
   layers:
     - layerset-and-layer-build:[1.4,2.0)
+  global:
+    release:
+      versioning:
+        maxParts: '3'
+        strategy: file-pattern-match
+        patternType: custom
+        useSourceVersionExact: true
+        source:
+          subPath: .
+          fileName: version.txt
+          pattern: '^([0-9]+\.[0-9]+\.[0-9]+)$'

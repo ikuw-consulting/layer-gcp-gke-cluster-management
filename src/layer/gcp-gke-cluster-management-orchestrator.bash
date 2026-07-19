@@ -1,18 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ -z "${BUILD_SCRIPTS_REPO_ROOT:-}" ]]; then
-  echo "ERROR: BUILD_SCRIPTS_REPO_ROOT is not set." >&2
-  exit 1
-fi
-if [[ ! -d "${BUILD_SCRIPTS_REPO_ROOT}/src/scripts" ]]; then
-  echo "ERROR: BUILD_SCRIPTS_REPO_ROOT does not contain src/scripts." >&2
-  exit 1
-fi
-
 LAYER_PAYLOAD_DIR="${OUTPUT_SUB_PATH:-kaptain-out}"
-BUILD_SCRIPTS_DIR="${BUILD_SCRIPTS_REPO_ROOT}/src/scripts"
-export BUILD_SCRIPTS_DIR
 FINAL_KPM="kaptainpm/final/KaptainPM.yaml"
 
 read_user_data() {
@@ -96,15 +85,41 @@ run_optional_user_hook() {
   "${script_path}"
 }
 
+require_build_scripts() {
+  if [[ -z "${BUILD_SCRIPTS_REPO_ROOT:-}" ]]; then
+    echo "ERROR: BUILD_SCRIPTS_REPO_ROOT is not set." >&2
+    exit 1
+  fi
+  if [[ ! -d "${BUILD_SCRIPTS_REPO_ROOT}/src/scripts" ]]; then
+    echo "ERROR: BUILD_SCRIPTS_REPO_ROOT does not contain src/scripts." >&2
+    exit 1
+  fi
+
+  BUILD_SCRIPTS_DIR="${BUILD_SCRIPTS_REPO_ROOT}/src/scripts"
+  export BUILD_SCRIPTS_DIR
+}
+
 banner "load defaults"
 # shellcheck source=gcp-gke-cluster-management-defaults.bash
 source "${LAYER_PAYLOAD_DIR}/gcp-gke-cluster-management-defaults.bash"
 
+if ! gke_is_consumer_build; then
+  require_build_scripts
+fi
+
 run_step "prepare" bash "${LAYER_PAYLOAD_DIR}/gcp-gke-cluster-management-prepare.bash"
-run_optional_user_hook "user pre-docker-prepare" "${USER_PRE_DOCKER_PREPARE_SCRIPT}"
-run_step "pre-build-validate" bash "${LAYER_PAYLOAD_DIR}/gcp-gke-cluster-management-pre-build-validate.bash"
-run_step "docker-build-dockerfile" bash "${BUILD_SCRIPTS_DIR}/main/docker-build-dockerfile"
-run_step "post-build-validate" bash "${LAYER_PAYLOAD_DIR}/gcp-gke-cluster-management-post-build-validate.bash"
-run_optional_user_hook "user post-docker-tests" "${USER_POST_DOCKER_TESTS_SCRIPT}"
+
+if gke_is_consumer_build; then
+  banner "consumer mode"
+  echo "standard final-package workflow owns Dockerfile generation and the single Docker build"
+  run_step "pre-build-validate" bash "${LAYER_PAYLOAD_DIR}/gcp-gke-cluster-management-pre-build-validate.bash"
+  run_step "post-build-validate" bash "${LAYER_PAYLOAD_DIR}/gcp-gke-cluster-management-post-build-validate.bash"
+else
+  run_optional_user_hook "user pre-docker-prepare" "${USER_PRE_DOCKER_PREPARE_SCRIPT}"
+  run_step "pre-build-validate" bash "${LAYER_PAYLOAD_DIR}/gcp-gke-cluster-management-pre-build-validate.bash"
+  run_step "docker-build-dockerfile" bash "${BUILD_SCRIPTS_DIR}/main/docker-build-dockerfile"
+  run_step "post-build-validate" bash "${LAYER_PAYLOAD_DIR}/gcp-gke-cluster-management-post-build-validate.bash"
+  run_optional_user_hook "user post-docker-tests" "${USER_POST_DOCKER_TESTS_SCRIPT}"
+fi
 
 banner "complete"
