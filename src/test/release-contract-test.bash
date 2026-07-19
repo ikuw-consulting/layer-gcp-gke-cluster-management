@@ -69,8 +69,24 @@ test_pinned_kaptain_workflow_is_gated_by_tests() {
 
   assert_yaml_value "${workflow}" '.jobs.test.runs-on' 'ubuntu-latest' \
     "repository test runner"
-  assert_yaml_value "${workflow}" '.jobs.test.steps[1].run' \
+  assert_yaml_value "${workflow}" '.jobs.test.steps[1].uses' \
+    'actions/checkout@v4' "Kaptain source checkout action"
+  assert_yaml_value "${workflow}" '.jobs.test.steps[1].with.repository' \
+    'kube-kaptain/buildon-github-actions' "Kaptain source repository"
+  assert_yaml_value "${workflow}" '.jobs.test.steps[1].with.ref' \
+    '1.1.46' "Kaptain source version"
+  assert_yaml_value "${workflow}" '.jobs.test.steps[1].with.path' \
+    '.kaptain-buildon-1.1.46' "Kaptain source checkout path"
+  assert_yaml_value "${workflow}" '.jobs.test.steps[1].with.fetch-depth' \
+    '1' "Kaptain source checkout depth"
+  assert_yaml_value "${workflow}" '.jobs.test.steps[2].run' \
     'src/test/run-tests.bash' "repository test command"
+  # shellcheck disable=SC2016 # Literal GitHub Actions expression.
+  assert_yaml_value \
+    "${workflow}" \
+    '.jobs.test.steps[2].env.KAPTAIN_BUILDON_REPO_ROOT' \
+    '${{ github.workspace }}/.kaptain-buildon-1.1.46' \
+    "repository test Kaptain source path"
   assert_yaml_value "${workflow}" '.jobs.build.needs' 'test' \
     "Kaptain build test dependency"
   assert_yaml_value "${workflow}" '.jobs.build.uses' \

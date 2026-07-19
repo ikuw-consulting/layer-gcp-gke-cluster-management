@@ -3,6 +3,10 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TEST_TMP_ROOT="$(mktemp -d)"
+KAPTAIN_BUILDON_REPO_ROOT="${KAPTAIN_BUILDON_REPO_ROOT:-${KAPTAIN_USER_SCRIPTS_BUILD_SCRIPTS_REPO_ROOT:-}}"
+PINNED_KAPTAIN_VERSION="1.1.46"
+PINNED_KAPTAIN_COMMIT="a6b44135d45d9293a617930099ea18a8d76fc25a"
+PINNED_FINAL_REFERENCE="src/scripts/reference/kubernetes-bundle-docker-dockerfile"
 trap 'rm -rf "${TEST_TMP_ROOT}"' EXIT
 
 fail() {
@@ -79,19 +83,57 @@ build_call_count() {
   awk 'END { print NR }' "${calls_file}"
 }
 
-test_consumer_mode_leaves_the_single_build_to_the_final_workflow() {
+assert_pinned_final_workflow_has_one_docker_build() {
+  local actual_commit
+  local reference_build_count
+
+  if [[ -z "${KAPTAIN_BUILDON_REPO_ROOT}" ]]; then
+    fail "KAPTAIN_BUILDON_REPO_ROOT is required to inspect Kaptain ${PINNED_KAPTAIN_VERSION}"
+  fi
+  if [[ ! -d "${KAPTAIN_BUILDON_REPO_ROOT}/.git" ]]; then
+    fail "KAPTAIN_BUILDON_REPO_ROOT is not a Git checkout: ${KAPTAIN_BUILDON_REPO_ROOT}"
+  fi
+
+  actual_commit="$(
+    git -C "${KAPTAIN_BUILDON_REPO_ROOT}" \
+      rev-parse "${PINNED_KAPTAIN_VERSION}^{}"
+  )"
+  assert_equals \
+    "${PINNED_KAPTAIN_COMMIT}" \
+    "${actual_commit}" \
+    "Kaptain ${PINNED_KAPTAIN_VERSION} commit"
+
+  reference_build_count="$(
+    git -C "${KAPTAIN_BUILDON_REPO_ROOT}" \
+      show "${PINNED_KAPTAIN_VERSION}:${PINNED_FINAL_REFERENCE}" |
+      awk '/^[[:space:]]*run_step "docker-build-dockerfile"[[:space:]]*$/ { count++ } END { print count + 0 }'
+  )"
+  assert_equals \
+    "1" \
+    "${reference_build_count}" \
+    "pinned standard final-workflow Docker build count"
+}
+
+test_consumer_mode_preserves_final_dockerfile_and_leaves_build_to_final_workflow() {
   local sandbox
   local calls_file
   sandbox="$(new_sandbox)"
   calls_file="${sandbox}/docker-build-calls"
+
+  mkdir -p "${sandbox}/work/src/docker"
+  cp \
+    "${REPO_ROOT}/src/test/fixtures/final-package.Dockerfile" \
+    "${sandbox}/work/src/docker/Dockerfile"
 
   run_orchestrator \
     "${sandbox}" \
     "kubernetes-bundle-docker-dockerfile" \
     > "${sandbox}/orchestrator-output"
 
-  if [[ -e "${sandbox}/work/src/docker/Dockerfile" ]]; then
-    fail "consumer mode generated a competing Dockerfile"
+  if ! cmp -s \
+    "${REPO_ROOT}/src/test/fixtures/final-package.Dockerfile" \
+    "${sandbox}/work/src/docker/Dockerfile"; then
+    fail "consumer mode changed the preexisting final-package Dockerfile"
   fi
   assert_equals \
     "ghcr.io/ikuw-consulting/image/image-gcp-gke-cluster-management:1.34.1" \
@@ -102,13 +144,7 @@ test_consumer_mode_leaves_the_single_build_to_the_final_workflow() {
     "$(build_call_count "${calls_file}")" \
     "consumer-mode layer-owned Docker build count"
 
-  DOCKER_BUILD_CALLS_FILE="${calls_file}" \
-    bash "${sandbox}/build-scripts/src/scripts/main/docker-build-dockerfile"
-
-  assert_equals \
-    "1" \
-    "$(build_call_count "${calls_file}")" \
-    "total Docker build count after the standard final workflow runs"
+  assert_pinned_final_workflow_has_one_docker_build
 }
 
 test_standalone_mode_retains_one_layer_owned_build() {
@@ -148,7 +184,7 @@ test_consumer_mode_rejects_a_two_part_base_tag() {
   fi
 }
 
-test_consumer_mode_leaves_the_single_build_to_the_final_workflow
+test_consumer_mode_preserves_final_dockerfile_and_leaves_build_to_final_workflow
 test_standalone_mode_retains_one_layer_owned_build
 test_consumer_mode_rejects_a_two_part_base_tag
 

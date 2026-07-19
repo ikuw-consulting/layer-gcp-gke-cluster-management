@@ -11,7 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: kube-kaptain/buildon-github-actions
+          ref: '1.1.46'
+          path: .kaptain-buildon-1.1.46
+          fetch-depth: 1
       - run: src/test/run-tests.bash
+        env:
+          KAPTAIN_BUILDON_REPO_ROOT: ${{ github.workspace }}/.kaptain-buildon-1.1.46
 
   build:
     needs: test
