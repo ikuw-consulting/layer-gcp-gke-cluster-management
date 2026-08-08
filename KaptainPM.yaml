@@ -4,7 +4,11 @@ metadata:
   description: "GCP GKE cluster management build configuration layer"
 spec:
   layers:
-    - ghcr.io/kube-kaptain/layerset/layerset-and-layer-build:[1.4,2.0)
+    # Flattened composition of kube-kaptain layerset/layerset-and-layer-build:1.4.
+    # A cross-org layerset cannot be consumed directly: its inner short-form
+    # layer refs re-resolve against this repo's publishing namespace and 404.
+    - ghcr.io/kube-kaptain/layer/layer-github-flow-strict:[1.3,2.0)
+    - ghcr.io/kube-kaptain/layer/layer-and-layerset-build:[1.6,2.0)
   global:
     release:
       versioning:
