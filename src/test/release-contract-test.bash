@@ -37,7 +37,7 @@ test_first_compatible_release_is_exactly_1_1_0() {
   assert_yaml_value "${manifest}" '.kind' 'layer-and-layerset-build' \
     "root Kaptain build kind"
   assert_yaml_value "${manifest}" '.spec.layers[0]' \
-    'layerset-and-layer-build:[1.4,2.0)' \
+    'ghcr.io/kube-kaptain/layerset/layerset-and-layer-build:[1.4,2.0)' \
     "root build layer dependency"
   assert_yaml_value "${manifest}" '.spec.global.release.versioning.maxParts' '3' \
     "maximum release version parts"

@@ -4,7 +4,7 @@ metadata:
   description: "GCP GKE cluster management build configuration layer"
 spec:
   layers:
-    - layerset-and-layer-build:[1.4,2.0)
+    - ghcr.io/kube-kaptain/layerset/layerset-and-layer-build:[1.4,2.0)
   global:
     release:
       versioning:
