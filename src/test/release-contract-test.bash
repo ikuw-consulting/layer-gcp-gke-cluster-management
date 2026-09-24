@@ -63,8 +63,14 @@ test_first_compatible_release_is_exactly_1_1_0() {
     '.spec.global.release.versioning.source.pattern' \
     '^([0-9]+\.[0-9]+\.[0-9]+)$' \
     "release source pattern"
-  assert_equals '1.1.0' "$(tr -d '[:space:]' < "${REPO_ROOT}/version.txt")" \
-    "first compatible release version"
+  # 1.1.0 was the first consumer-mode release; every later release must stay in
+  # that series (1.x, minor >= 1), which is what layerset's [1.1.0,2.0) selects.
+  local release_version
+  release_version="$(tr -d '[:space:]' < "${REPO_ROOT}/version.txt")"
+  if ! [[ "${release_version}" =~ ^1\.[1-9][0-9]*\.[0-9]+$ ]]; then
+    echo "FAIL: release version ${release_version} is outside the consumer-mode series [1.1.0,2.0)" >&2
+    exit 1
+  fi
 }
 
 test_pinned_kaptain_workflow_is_gated_by_tests() {
