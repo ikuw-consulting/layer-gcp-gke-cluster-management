@@ -1,4 +1,4 @@
-apiVersion: kaptain.org/1.22
+apiVersion: kaptain.org/1.31
 kind: layer-and-layerset-build
 metadata:
   description: "GCP GKE cluster management build configuration layer"

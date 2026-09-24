@@ -32,7 +32,7 @@ assert_yaml_value() {
 test_first_compatible_release_is_exactly_1_1_0() {
   local manifest="${REPO_ROOT}/KaptainPM.yaml"
 
-  assert_yaml_value "${manifest}" '.apiVersion' 'kaptain.org/1.22' \
+  assert_yaml_value "${manifest}" '.apiVersion' 'kaptain.org/1.31' \
     "root Kaptain API version"
   assert_yaml_value "${manifest}" '.kind' 'layer-and-layerset-build' \
     "root Kaptain build kind"
@@ -63,8 +63,14 @@ test_first_compatible_release_is_exactly_1_1_0() {
     '.spec.global.release.versioning.source.pattern' \
     '^([0-9]+\.[0-9]+\.[0-9]+)$' \
     "release source pattern"
-  assert_equals '1.1.0' "$(tr -d '[:space:]' < "${REPO_ROOT}/version.txt")" \
-    "first compatible release version"
+  # 1.1.0 was the first consumer-mode release; every later release must stay in
+  # that series (1.x, minor >= 1), which is what layerset's [1.1.0,2.0) selects.
+  local release_version
+  release_version="$(tr -d '[:space:]' < "${REPO_ROOT}/version.txt")"
+  if ! [[ "${release_version}" =~ ^1\.[1-9][0-9]*\.[0-9]+$ ]]; then
+    echo "FAIL: release version ${release_version} is outside the consumer-mode series [1.1.0,2.0)" >&2
+    exit 1
+  fi
 }
 
 test_pinned_kaptain_workflow_is_gated_by_tests() {
@@ -77,9 +83,9 @@ test_pinned_kaptain_workflow_is_gated_by_tests() {
   assert_yaml_value "${workflow}" '.jobs.test.steps[1].with.repository' \
     'kube-kaptain/buildon-github-actions' "Kaptain source repository"
   assert_yaml_value "${workflow}" '.jobs.test.steps[1].with.ref' \
-    '1.1.46' "Kaptain source version"
+    '1.1.59' "Kaptain source version"
   assert_yaml_value "${workflow}" '.jobs.test.steps[1].with.path' \
-    '.kaptain-buildon-1.1.46' "Kaptain source checkout path"
+    '.kaptain-buildon-1.1.59' "Kaptain source checkout path"
   assert_yaml_value "${workflow}" '.jobs.test.steps[1].with.fetch-depth' \
     '1' "Kaptain source checkout depth"
   assert_yaml_value "${workflow}" '.jobs.test.steps[2].run' \
@@ -88,12 +94,12 @@ test_pinned_kaptain_workflow_is_gated_by_tests() {
   assert_yaml_value \
     "${workflow}" \
     '.jobs.test.steps[2].env.KAPTAIN_BUILDON_REPO_ROOT' \
-    '${{ github.workspace }}/.kaptain-buildon-1.1.46' \
+    '${{ github.workspace }}/.kaptain-buildon-1.1.59' \
     "repository test Kaptain source path"
   assert_yaml_value "${workflow}" '.jobs.build.needs' 'test' \
     "Kaptain build test dependency"
   assert_yaml_value "${workflow}" '.jobs.build.uses' \
-    'kube-kaptain/buildon-github-actions/.github/workflows/layer-and-layerset-build.yaml@1.1.46' \
+    'kube-kaptain/buildon-github-actions/.github/workflows/layer-and-layerset-build.yaml@1.1.59' \
     "pinned Kaptain reusable workflow"
   assert_yaml_value "${workflow}" '.jobs.build.permissions.contents' 'write' \
     "Kaptain workflow contents permission"

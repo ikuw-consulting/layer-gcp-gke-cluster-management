@@ -14,16 +14,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: kube-kaptain/buildon-github-actions
-          ref: '1.1.46'
-          path: .kaptain-buildon-1.1.46
+          ref: '1.1.59'
+          path: .kaptain-buildon-1.1.59
           fetch-depth: 1
       - run: src/test/run-tests.bash
         env:
-          KAPTAIN_BUILDON_REPO_ROOT: ${{ github.workspace }}/.kaptain-buildon-1.1.46
+          KAPTAIN_BUILDON_REPO_ROOT: ${{ github.workspace }}/.kaptain-buildon-1.1.59
 
   build:
     needs: test
-    uses: kube-kaptain/buildon-github-actions/.github/workflows/layer-and-layerset-build.yaml@1.1.46
+    uses: kube-kaptain/buildon-github-actions/.github/workflows/layer-and-layerset-build.yaml@1.1.59
     permissions:
       contents: write
       packages: write
