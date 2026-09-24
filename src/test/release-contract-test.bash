@@ -32,7 +32,7 @@ assert_yaml_value() {
 test_first_compatible_release_is_exactly_1_1_0() {
   local manifest="${REPO_ROOT}/KaptainPM.yaml"
 
-  assert_yaml_value "${manifest}" '.apiVersion' 'kaptain.org/1.22' \
+  assert_yaml_value "${manifest}" '.apiVersion' 'kaptain.org/1.31' \
     "root Kaptain API version"
   assert_yaml_value "${manifest}" '.kind' 'layer-and-layerset-build' \
     "root Kaptain build kind"
