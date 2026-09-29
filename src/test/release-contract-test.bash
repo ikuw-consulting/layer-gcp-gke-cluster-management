@@ -32,7 +32,7 @@ assert_yaml_value() {
 test_first_compatible_release_is_exactly_1_1_0() {
   local manifest="${REPO_ROOT}/KaptainPM.yaml"
 
-  assert_yaml_value "${manifest}" '.apiVersion' 'kaptain.org/1.31' \
+  assert_yaml_value "${manifest}" '.apiVersion' 'kaptain.org/1.34' \
     "root Kaptain API version"
   assert_yaml_value "${manifest}" '.kind' 'layer-and-layerset-build' \
     "root Kaptain build kind"
@@ -99,7 +99,7 @@ test_pinned_kaptain_workflow_is_gated_by_tests() {
   assert_yaml_value "${workflow}" '.jobs.build.needs' 'test' \
     "Kaptain build test dependency"
   assert_yaml_value "${workflow}" '.jobs.build.uses' \
-    'kube-kaptain/buildon-github-actions/.github/workflows/layer-and-layerset-build.yaml@1.1.59' \
+    'kube-kaptain/buildon-github-actions/.github/workflows/layer-and-layerset-build.yaml@1.1.62' \
     "pinned Kaptain reusable workflow"
   assert_yaml_value "${workflow}" '.jobs.build.permissions.contents' 'write' \
     "Kaptain workflow contents permission"
